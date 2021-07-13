@@ -1,4 +1,5 @@
 const express = require('express');
+const SocketServer = require('websocket').server //
 const http = require('http');
 const path = require("path");
 const bodyParser = require('body-parser');
@@ -37,6 +38,31 @@ app.get('/', (req, res) => {
 app.use('/user', userRouter);
 
 // Express 서버 시작
-http.createServer(app).listen(app.get('port'), function(){
+const server = http.createServer(app).listen(app.get('port'), function(){
     console.log(app.get('port') + "에서 express 실행 중");
 });
+
+
+wsServer = new SocketServer({httpServer:server}); //
+const connections = []
+
+wsServer.on('request', (req) => {
+  const connection = req.accept()
+  console.log('new connection')
+  connections.push(connection)
+
+  connection.on('message', (mes) => {
+      connections.forEach(element => {
+          if (element != connection)
+              element.sendUTF(mes.utf8Data)
+      })
+  })
+
+  connection.on('close', (resCode, des) => {
+      console.log('connection closed')
+      connections.splice(connections.indexOf(connection), 1)
+  })
+
+})
+
+
